@@ -1,9 +1,11 @@
 package com.durgesh.onlydevs.services;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,11 +45,22 @@ public class AuthenticationService {
 	@Autowired
 	private AuthenticationManager authenticationManager;
 
-	public String register(RegisterRequest request) {
+	public AuthenticationResponse register(RegisterRequest request) {
 		var user = User.builder().name(request.getName()).email(request.getEmail())
 				.password(passwordEncoder.encode(request.getPassword())).role(request.getRole()).build();
-		repository.save(user);
-		return "Successfully Registered!!";
+		try {
+			repository.save(user);
+			repository.findByEmail(user.getEmail()).orElseThrow();
+			var jwtToken = jwtService.generateToken(user);
+			var refreshToken = jwtService.generateRefreshToken(user);
+			revokeAllUserTokens(user);
+			saveUserToken(user, jwtToken);
+			return AuthenticationResponse.builder().accessToken(jwtToken).refreshToken(refreshToken).data(user)
+					.message("login successfully!").status(HttpStatus.OK.value()).timeStamp(LocalDateTime.now())
+					.build();
+		} catch (Exception e) {
+			throw new RuntimeException("Something is wrong!!");
+		}
 	}
 
 	public AuthenticationResponse authenticate(AuthenticationRequest request) {
@@ -58,7 +71,8 @@ public class AuthenticationService {
 		var refreshToken = jwtService.generateRefreshToken(user);
 		revokeAllUserTokens(user);
 		saveUserToken(user, jwtToken);
-		return AuthenticationResponse.builder().accessToken(jwtToken).refreshToken(refreshToken).build();
+		return AuthenticationResponse.builder().accessToken(jwtToken).refreshToken(refreshToken).data(user)
+				.message("login successfully!").status(HttpStatus.OK.value()).timeStamp(LocalDateTime.now()).build();
 	}
 
 	private void saveUserToken(User user, String jwtToken) {

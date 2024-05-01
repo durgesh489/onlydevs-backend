@@ -2,6 +2,7 @@ package com.durgesh.onlydevs.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class AuthenticationController {
 	private AuthenticationService service;
 
 	@PostMapping("/register")
-	public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+	public ResponseEntity<AuthenticationResponse> register(@Valid @RequestBody RegisterRequest request) {
 		return ResponseEntity.ok(service.register(request));
 	}
 
